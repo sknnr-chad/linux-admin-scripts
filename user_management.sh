@@ -18,6 +18,39 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+
+# Determine distro
+if [ -f /etc/debian_version ]; then
+  DISTRO="debian"
+elif [ -f /etc/redhat-release ]; then
+  DISTRO="rhel"
+else
+  DISTRO="unknown"
+fi
+
+# Function to assign sudo privileges based on distro
+assign_sudo_privileges() {
+  local username="$1"
+  case "$DISTRO" in
+    debian)
+      run_command usermod -aG sudo "$username"
+      run_command bash -c "echo '$username ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/$username"
+      run_command chmod 440 "/etc/sudoers.d/$username"
+      ;;
+    rhel)
+      run_command usermod -aG wheel "$username"
+      if ! grep -q '^%wheel.*NOPASSWD' /etc/sudoers; then
+        run_command bash -c "echo '$username ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/$username"
+        run_command chmod 440 "/etc/sudoers.d/$username"
+      fi
+      ;;
+    *)
+      echo "Unsupported distro for sudo privileges."
+      exit 1
+      ;;
+  esac
+}
+
 # Check for dry run mode from command line
 DRY_RUN=false
 for arg in "$@"; do
@@ -198,7 +231,7 @@ add_user() {
   else
     run_command useradd -m -s /bin/bash "$username"
     run_command passwd -l "$username"
-    run_command usermod -aG sudo "$username"
+    assign_sudo_privileges "$username"
     run_command mkdir -p "${HOME_BASE}/$username/.ssh"
     # Escape single quotes in public_key and key_comment
     escaped_public_key=$(escape_single_quotes "$public_key")
