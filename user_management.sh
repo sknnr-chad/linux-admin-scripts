@@ -210,6 +210,7 @@ add_user() {
     run_command_shell "echo '$username ALL=(ALL) NOPASSWD: ALL' | tee /etc/sudoers.d/$username > /dev/null"
     run_command chmod 440 "/etc/sudoers.d/$username"
     echo "User $username created successfully!"
+    echo "IMPORTANT SECURITY NOTICE: ALWAYS secure your SSH private key with a strong passphrase. Failure to do so may leave your system vulnerable!"
   fi
   read -p "Press Enter to continue..."
   echo ""
@@ -333,6 +334,7 @@ add_key() {
       exit 1
     fi
     echo "New key added successfully."
+    echo "IMPORTANT SECURITY NOTICE: ALWAYS secure your SSH private key with a strong passphrase. Failure to do so may leave your system vulnerable!"
   fi
   read -p "Press Enter to continue..."
   echo ""
@@ -444,6 +446,7 @@ rotate_key() {
     new_line="$new_key $new_comment"
     run_command sed -i "${key_num}s!.*!$new_line!" "$authorized_keys"
     echo "Key rotated successfully."
+    echo "IMPORTANT SECURITY NOTICE: ALWAYS secure your SSH private key with a strong passphrase. Failure to do so may leave your system vulnerable!"
   else
     echo "No SSH keys found for $user."
   fi
