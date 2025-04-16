@@ -18,7 +18,6 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-
 # Determine distro
 if [ -f /etc/debian_version ]; then
   DISTRO="debian"
@@ -99,7 +98,7 @@ run_command_shell() {
 
 # Function to escape single quotes in strings
 escape_single_quotes() {
-  echo "$1" | sed "s/'/'\\\\''/g"
+  echo "$1" | sed "s/'/'\\''/g"
 }
 
 # Regular expression for allowed public keys (Ed25519 or ECDSA)
@@ -185,14 +184,14 @@ select_user() {
   local i=1
   declare -A user_map
   for user in "${users[@]}"; do
-    echo "$i. $user"
+    echo "$i. $user" > /dev/tty
     user_map[$i]="$user"
     ((i++))
   done
-  read -p "$prompt" user_num
+  read -p "$prompt" user_num < /dev/tty
   if ! [[ "$user_num" =~ ^[0-9]+$ ]] || [ "$user_num" -lt 1 ] || [ "$user_num" -ge "$i" ]; then
-    echo "Invalid selection."
-    read -p "Press Enter to continue..."
+    echo "Invalid selection." > /dev/tty
+    read -p "Press Enter to continue..." < /dev/tty
     return 1
   fi
   echo "${user_map[$user_num]}"
@@ -217,7 +216,7 @@ add_user() {
   public_key=$(get_public_key)
   if [ $? -ne 0 ] || [ -z "$public_key" ]; then
     echo "Failed to obtain a valid public key."
-    read -p "Press Enter to continue..."
+    read -p "Press Enter to continue..." < /dev/tty
     return
   fi
 
@@ -284,7 +283,7 @@ review_users() {
   else
     for user in $users; do
       echo "User: $user"
-      if [ -f "${HOME_BASE}/$user/.ssh/authorized_keys" ]; then
+      if [ -s "${HOME_BASE}/$user/.ssh/authorized_keys" ]; then
         echo "SSH Keys:"
         while read -r line; do
           key=$(echo "$line" | cut -d' ' -f1,2)
@@ -312,7 +311,7 @@ add_key() {
   readarray -t users_array < <(getent passwd | awk -F: -v home="^${HOME_BASE}/" '$6 ~ home && $7 !~ /nologin|false/ {print $1}')
   if [ ${#users_array[@]} -eq 0 ]; then
     echo "No users found."
-    read -p "Press Enter to continue..."
+    read -p "Press Enter to continue..." < /dev/tty
     echo ""
     echo ""
     return
@@ -342,14 +341,14 @@ add_key() {
   new_key=$(get_public_key)
   if [ $? -ne 0 ] || [ -z "$new_key" ]; then
     echo "Failed to obtain a valid public key."
-    read -p "Press Enter to continue..."
+    read -p "Press Enter to continue..." < /dev/tty
     return
   fi
 
   # Check for duplicate key
   if grep -q "^$new_key " "$authorized_keys"; then
     echo "This key already exists for $user. Not adding duplicate."
-    read -p "Press Enter to continue..."
+    read -p "Press Enter to continue..." < /dev/tty
     return
   fi
 
@@ -382,7 +381,7 @@ revoke_key() {
   readarray -t users_array < <(getent passwd | awk -F: -v home="^${HOME_BASE}/" '$6 ~ home && $7 !~ /nologin|false/ {print $1}')
   if [ ${#users_array[@]} -eq 0 ]; then
     echo "No users found."
-    read -p "Press Enter to continue..."
+    read -p "Press Enter to continue..." < /dev/tty
     echo ""
     echo ""
     return
@@ -395,7 +394,7 @@ revoke_key() {
   echo ""
   echo "Selected user: $user"
   authorized_keys="${HOME_BASE}/$user/.ssh/authorized_keys"
-  if [ -f "$authorized_keys" ]; then
+  if [ -s "$authorized_keys" ]; then
     echo "SSH Keys for $user:"
     i=1
     while read -r line; do
@@ -405,8 +404,8 @@ revoke_key() {
     echo ""
     read -p "Select a key to revoke by number: " key_num
     if ! [[ "$key_num" =~ ^[0-9]+$ ]] || [ "$key_num" -lt 1 ] || [ "$key_num" -ge "$i" ]; then
-      echo "Invalid selection."
-      read -p "Press Enter to continue..."
+      echo "Invalid selection." > /dev/tty
+      read -p "Press Enter to continue..." < /dev/tty
       echo ""
       echo ""
       return
@@ -436,7 +435,7 @@ rotate_key() {
   readarray -t users_array < <(getent passwd | awk -F: -v home="^${HOME_BASE}/" '$6 ~ home && $7 !~ /nologin|false/ {print $1}')
   if [ ${#users_array[@]} -eq 0 ]; then
     echo "No users found."
-    read -p "Press Enter to continue..."
+    read -p "Press Enter to continue..." < /dev/tty
     echo ""
     echo ""
     return
@@ -449,7 +448,7 @@ rotate_key() {
   echo ""
   echo "Selected user: $user"
   authorized_keys="${HOME_BASE}/$user/.ssh/authorized_keys"
-  if [ -f "$authorized_keys" ]; then
+  if [ -s "$authorized_keys" ]; then
     echo "SSH Keys for $user:"
     i=1
     while read -r line; do
@@ -459,8 +458,8 @@ rotate_key() {
     echo ""
     read -p "Select a key to rotate by number: " key_num
     if ! [[ "$key_num" =~ ^[0-9]+$ ]] || [ "$key_num" -lt 1 ] || [ "$key_num" -ge "$i" ]; then
-      echo "Invalid selection."
-      read -p "Press Enter to continue..."
+      echo "Invalid selection." > /dev/tty
+      read -p "Press Enter to continue..." < /dev/tty
       echo ""
       echo ""
       return
@@ -469,7 +468,7 @@ rotate_key() {
     new_key=$(get_public_key)
     if [ $? -ne 0 ] || [ -z "$new_key" ]; then
       echo "Failed to obtain a valid public key."
-      read -p "Press Enter to continue..."
+      read -p "Press Enter to continue..." < /dev/tty
       return
     fi
     read -p "Enter a comment for the new key (avoid using #): " new_comment
